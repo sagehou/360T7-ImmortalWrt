@@ -12,4 +12,4 @@
 sed -i 's/192.168.1.1/192.168.233.1/g' package/base-files/files/bin/config_generate
 
 # Modify hostname
-#sed -i 's/OpenWrt/360T7/g' package/base-files/files/bin/config_generate
+sed -i 's/OpenWrt/360T7/g' package/base-files/files/bin/config_generate
