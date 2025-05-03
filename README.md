@@ -19,3 +19,5 @@ Auto build OpenWrt firmware for 360T7 via GitHub Actions
 - uPnP
 - ddns-go
 - wake-on-lan
+
+Change Repo to https://github.com/padavanonly/immortalwrt-mt798x-24.10
