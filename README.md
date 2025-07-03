@@ -8,16 +8,5 @@ Auto build OpenWrt firmware for 360T7 via GitHub Actions
 | --- | --- | --- | 
 | 192.168.233.1 | root | - |
 
-## Main Functions
-
-- ipv6 support
-- zerotier
-- wireguard
-- passwall
-- openclash
-- v2raya
-- uPnP
-- ddns-go
-- wake-on-lan
-
-Change Repo to https://github.com/padavanonly/immortalwrt-mt798x-24.10
+Change Repo to [immortalwrt-mt798x-24.10](https://github.com/padavanonly/immortalwrt-mt798x-6.6)
+BRANCH: openwrt-24.10-6.6
