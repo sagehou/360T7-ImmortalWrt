@@ -11,9 +11,9 @@
 name: Build OpenWrt
 
 env:
-  #REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6
-  REPO_URL: https://github.com/sagehou/immortalwrt-mt798x-6.6
-  REPO_BRANCH: 360t7_systupgrade_fix
+  REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6
+  #REPO_URL: https://github.com/sagehou/immortalwrt-mt798x-6.6
+  REPO_BRANCH: openwrt-24.10-6.6
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: 360t7.config
   DIY_P1_SH: diy-part1.sh
