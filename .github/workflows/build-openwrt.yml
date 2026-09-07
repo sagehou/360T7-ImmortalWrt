@@ -139,10 +139,46 @@ jobs:
 
     - name: Organize files
       id: organize
-      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
+        python3 - <<'PYTHON'
+        import hashlib
+        import json
+        import os
+        from pathlib import Path
+
+        root = Path('.')
+        renamed = {}
+        for path in sorted(root.glob('*.bin')):
+            name = f"{path.stem}{os.environ['FILE_DATE']}{path.suffix}"
+            if (root / name).exists():
+                raise FileExistsError(name)
+            path.rename(root / name)
+            renamed[path.name] = name
+
+        profiles = root / 'profiles.json'
+        if profiles.exists():
+            data = json.loads(profiles.read_text())
+            for profile in data.get('profiles', {}).values():
+                for image in profile.get('images', []):
+                    if image.get('name') in renamed:
+                        image['name'] = renamed[image['name']]
+            profiles.write_text(json.dumps(data, indent=2) + '\n')
+
+        # Update filenames and hashes, including the changed profiles.json.
+        sums = root / 'sha256sums'
+        lines = []
+        for line in sums.read_text().splitlines():
+            _, name = line.split(None, 1)
+            marker = '*' if name.startswith('*') else ' '
+            name = name.removeprefix('*')
+            name = renamed.get(name, name)
+            digest = hashlib.sha256((root / name).read_bytes()).hexdigest()
+            lines.append(f"{digest} {marker}{name}\n")
+        sums.write_text(''.join(lines))
+        PYTHON
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -173,10 +209,20 @@ jobs:
 
     - name: Generate release tag
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
       run: |
         echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
-        touch release.txt
+        upstream_version=$(cat "$FIRMWARE/version.buildinfo")
+        upstream_commit=$(git -C openwrt rev-parse HEAD)
+        echo "release_name=$(date +'%Y.%m.%d-%H%M') | $upstream_version" >> "$GITHUB_OUTPUT"
+        {
+          echo "- 上游版本：$upstream_version"
+          echo "- 上游分支：$REPO_BRANCH"
+          echo "- 上游提交：[$upstream_commit]($REPO_URL/commit/$upstream_commit)"
+          echo "- 构建完成时间：${FILE_DATE#_}（Asia/Shanghai）"
+          echo
+          echo '软件包版本请查看 manifest；各 feeds 提交见 feeds.buildinfo。'
+        } > release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
@@ -188,6 +234,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
+        name: ${{ steps.tag.outputs.release_name }}
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
