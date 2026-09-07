@@ -223,6 +223,28 @@ jobs:
           echo
           echo '软件包版本请查看 manifest；各 feeds 提交见 feeds.buildinfo。'
         } > release.txt
+        python3 - <<'PYTHON' >> release.txt
+        import os
+        import re
+        from pathlib import Path
+
+        print('\n| Feed | 构建使用的提交 |')
+        print('| --- | --- |')
+        for line in (Path(os.environ['FIRMWARE']) / 'feeds.buildinfo').read_text().splitlines():
+            if not line.strip() or line.lstrip().startswith('#'):
+                continue
+            kind, name, source = line.split(maxsplit=2)
+            url, pinned, revision = source.rpartition('^')
+            if pinned and re.fullmatch(r'[0-9a-fA-F]{40}', revision):
+                url = url.split(';', 1)[0].removesuffix('.git')
+                value = f'`{revision[:12]}`'
+                if url.startswith('https://github.com/'):
+                    value = f'[{value}]({url}/commit/{revision})'
+            else:
+                value = '`' + source.replace('|', '\\|') + '`'
+            print(f'| {name} | {value} |')
+        print()
+        PYTHON
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
